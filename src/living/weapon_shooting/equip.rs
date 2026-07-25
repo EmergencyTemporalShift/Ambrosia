@@ -201,7 +201,7 @@ pub fn apply_active_weapon(
             ));
         });
 
-        if name.to_string().ne("Player") {
+        if name.to_string().ne("Ambrosia") {
             info!("Entity {:?} ({:?}) switched to {:?}", name.as_str(), entity, new_kind);
         }
     }

@@ -46,7 +46,6 @@ use crate::levels_setup::levels_for_2d;
 use crate::levels_setup::helper::helper2d;
 use crate::living::enemy::EnemyPlugin;
 use crate::living::player::PlayerPlugin;
-use crate::living::weapon_shooting::FireWeapon;
 use crate::living::LivingPlugin;
 use crate::ui::DemoUi;
 use crate::util::controls_other::OtherControlsPlugin;
@@ -130,9 +129,6 @@ impl Plugin for GamePlugin {
             LivingPlugin,
             OtherControlsPlugin,
         ));
-
-        // Preserving custom extension trait if applicable
-        app.add_message::<FireWeapon>();
 
         // --- Core Gameplay Systems ---
         app.add_systems(

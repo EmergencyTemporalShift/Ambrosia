@@ -1,5 +1,6 @@
 use bevy::{app::AppExit, prelude::*};
 use leafwing_input_manager::prelude::*;
+use crate::living::player::IsPlayer;
 use crate::util::game_states::GameState;
 
 #[derive(Actionlike, PartialEq, Eq, Hash, Clone, Copy, Debug, Reflect)]
@@ -74,8 +75,9 @@ fn setup_system_controls(mut commands: Commands) {
     ));
 }
 
-fn handle_non_player_controls(
-    // Query the component instead of requesting a resource
+pub fn handle_non_player_controls(
+    mut commands: Commands,
+    keys: Res<ButtonInput<KeyCode>>,
     action_state_q: Query<&ActionState<SystemAction>>,
     mut controls: ResMut<OtherControls>,
     mut exit_events: MessageWriter<AppExit>,
@@ -83,6 +85,22 @@ fn handle_non_player_controls(
     mut next_state: ResMut<NextState<GameState>>,
     mut time: ResMut<Time<Virtual>>,
 ) {
+    // 1. Debug key press (KeyP) to dump player entity hierarchy
+    if keys.just_pressed(KeyCode::KeyO) {
+        commands.queue(|world: &mut World| {
+            let mut player_q = world.query_filtered::<Entity, With<IsPlayer>>();
+            let Ok(player_entity) = player_q.single(world) else {
+                info!("Debug Dump: No entity with IsPlayer found.");
+                return;
+            };
+
+            info!("================ PLAYER HIERARCHY DUMP ================");
+            dump_entity_tree(world, player_entity, 0);
+            info!("=======================================================");
+        });
+    }
+
+    // 2. ActionState system actions
     let Ok(action_state) = action_state_q.single() else {
         return;
     };
@@ -105,6 +123,42 @@ fn handle_non_player_controls(
                 next_state.set(GameState::Running);
                 time.unpause();
             }
+        }
+    }
+}
+
+fn dump_entity_tree(world: &World, entity: Entity, depth: usize) {
+    let Some(entity_ref) = world.get_entity(entity).ok() else { return };
+
+    let entity_label = entity_ref
+        .get::<Name>()
+        .map(|n| n.as_str())
+        .unwrap_or("Unnamed Entity");
+
+    let mut comp_names: Vec<String> = entity_ref
+        .archetype()
+        .components()
+        .into_iter()
+        .filter_map(|id| world.components().get_name(*id))
+        .map(|debug_name| {
+            let full_path = &*debug_name;
+            full_path
+                .split("::")
+                .last()
+                .unwrap_or(full_path)
+                .to_string()
+        })
+        .collect();
+
+    comp_names.sort();
+
+    let indent = "  ".repeat(depth);
+    info!("{indent}▶ {entity_label} ({entity:?})");
+    info!("{indent}   Components: [{}]", comp_names.join(", "));
+
+    if let Some(children) = entity_ref.get::<Children>() {
+        for child in children.iter() {
+            dump_entity_tree(world, child, depth + 1);
         }
     }
 }

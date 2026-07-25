@@ -1,4 +1,6 @@
 use bevy::prelude::*;
+use glamour::Vector2;
+use crate::util::units::CartesianSpace;
 
 #[derive(Component)]
 pub struct Weapon {
@@ -50,7 +52,7 @@ impl WeaponInventory {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Debug)]
 pub struct WeaponOffset {
     pub(crate) offset: f32,
 }
@@ -83,7 +85,13 @@ pub struct Beam {
 
 #[derive(Component)]
 pub struct BeamActive {
-    pub end_point: Vec3,
+    pub end_point: Vector2<CartesianSpace>,
+}
+
+#[derive(Component)]
+pub struct BeamLine {
+    // Stores the entity ID of the source casting the beam
+    pub source_entity: Entity,
 }
 
 #[derive(Component)]
@@ -108,7 +116,14 @@ pub struct Projectile {
     pub fired_by: Entity,
 }
 
-#[derive(Component)]
+#[derive(Component, Default)]
 pub struct LifetimeTimer {
     pub remaining: f32,
+}
+
+#[derive(Component)]
+#[require(Transform, LifetimeTimer)]
+pub struct DebugMarker {
+    pub color: Color,
+    pub radius: f32,
 }

@@ -1,4 +1,6 @@
 use bevy::prelude::*;
+use glamour::Vector2;
+use crate::util::units::CartesianSpace;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WeaponIntent {
@@ -7,10 +9,11 @@ pub enum WeaponIntent {
     ReleaseHold,
 }
 
-#[derive(Message)]
+#[derive(Event)]
 pub struct FireWeapon {
     pub wielder: Entity,
-    pub origin: Vec3,
-    pub direction: Dir2,
+    pub weapon: Entity,
+    pub weapon_pos: Vector2<CartesianSpace>,
+    pub aim: Vector2<CartesianSpace>,
     pub intent: WeaponIntent,
 }

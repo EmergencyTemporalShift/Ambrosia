@@ -1,6 +1,7 @@
 use avian2d::parry::glamx::Vec2;
 use glamour::{Unit, Vector2};
 #[allow(unused)]
+#[derive(Debug)]
 pub enum ScreenSpace {}
 
 impl Unit for ScreenSpace {
@@ -8,6 +9,7 @@ impl Unit for ScreenSpace {
 }
 
 #[allow(unused)]
+#[derive(Debug)]
 pub enum CartesianSpace {}
 
 impl Unit for CartesianSpace {
@@ -21,6 +23,7 @@ impl Unit for WindowSpace {
 }
 
 #[allow(unused)]
+#[derive(Debug)]
 pub enum NormalizedWindowSpace {}
 
 impl Unit for NormalizedWindowSpace {

@@ -64,13 +64,12 @@ pub fn setup_player(
         |cmd| {
             cmd.insert((IsPlayer, Team::Player));
 
-            // Replace the old command block with this:
             cmd.insert((
                 InputMap::default()
                     .with(PlayerAction::Fire, MouseButton::Left)
+
                     .with(PlayerAction::CyclePrev, KeyCode::BracketLeft)
                     .with(PlayerAction::CycleNext, KeyCode::BracketRight)
-                    // Add your mouse scroll bindings here if using them:
                     .with(PlayerAction::CycleNext, MouseScrollDirection::UP)
                     .with(PlayerAction::CyclePrev, MouseScrollDirection::DOWN),
                 ActionState::<PlayerAction>::default(),
@@ -114,8 +113,7 @@ pub fn setup_player(
                 let command_altering_selectors = CommandAlteringSelectors::default()
                     // By default, Tnua uses a raycast, but this could be a problem if the character stands
                     // just past the edge while part of its body is above the platform. To solve this, we
-                    // need to cast a shape - which is physics-engine specific. We set the shape using a
-                    // component.
+                    // need to cast a shape. We set the shape using a component.
                     .with_combo(
                         "Sensor Shape",
                         1,
@@ -186,9 +184,6 @@ pub fn setup_player(
             // fall-through behavior where the player can intentionally fall through a one-way platform.
             cmd.insert(TnuaSimpleFallThroughPlatformsHelper::default());
 
-            // 1. Unpack the default weapon (Bow) from your single source of truth
-            // The weapon's visual child is spawned by `apply_active_weapon`, so the
-            // visual config is not needed here.
             let (weapon, kind, _weapon_visual, spawner, melee, fire_rate, _beam) =
                 weapon_shooting::weapon_bundle(Bow);
 
@@ -201,7 +196,7 @@ pub fn setup_player(
                         HeavyBow,
                         Beam,
                     ],
-                    active: 3,
+                    active: 1,
                 },
                 weapon,
                 kind,

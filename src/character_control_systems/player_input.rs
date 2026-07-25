@@ -42,10 +42,10 @@ impl Plugin for PlayerInputPlugin {
 }
 
 pub fn player_fire_input(
+    mut commands: Commands,
     window: Single<&Window, With<PrimaryWindow>>,
     camera: Single<(&Camera, &GlobalTransform), With<Camera2d>>,
-    players: Query<(Entity, &Transform, Option<&FireRate>, &ActionState<PlayerAction>), (With<IsPlayer>, With<Weapon>)>,
-    mut fire_messages: MessageWriter<FireWeapon>,
+    player: Query<(Entity, &Transform, Option<&FireRate>, &ActionState<PlayerAction>), (With<IsPlayer>, With<Weapon>)>,
     #[cfg(feature = "egui")]
     mut egui_contexts: EguiContexts,
 ) {
@@ -70,8 +70,7 @@ pub fn player_fire_input(
     };
     let world_pos = ray.origin.truncate();
 
-    for (entity, transform, fire_rate, action_state) in &players {
-        // 1. Determine the intent from state transitions
+    for (entity, transform, fire_rate, action_state) in &player {
         let intent = if action_state.just_pressed(&PlayerAction::Fire) {
             WeaponIntent::BeginHold
         } else if action_state.just_released(&PlayerAction::Fire) {
@@ -79,10 +78,9 @@ pub fn player_fire_input(
         } else if action_state.pressed(&PlayerAction::Fire) {
             WeaponIntent::ContinueHold
         } else {
-            continue; // Action is inactive this tick
+            continue;
         };
 
-        // 2. Bypass fire rate check on release so release events aren't dropped
         if intent != WeaponIntent::ReleaseHold {
             if let Some(fr) = fire_rate {
                 if !fr.0.is_finished() {
@@ -91,12 +89,19 @@ pub fn player_fire_input(
             }
         }
 
-        let dir = (world_pos - transform.translation.truncate()).normalize_or_zero();
-        if dir != Vec2::ZERO {
-            fire_messages.write(FireWeapon {
+        let aim = world_pos.to_space::<CartesianSpace>();
+        info!(
+        "Triggering FireWeapon!\n  player_pos: {:?}\n  world_pos: {:?}\n  aim: {:?}",
+        transform.translation.truncate(),
+        world_pos,
+        aim
+    );
+        if aim != Vector2::ZERO {
+            commands.trigger(FireWeapon {
                 wielder: entity,
-                origin: transform.translation,
-                direction: Dir2::new(dir).unwrap(),
+                weapon: entity,
+                weapon_pos: transform.translation.truncate().to_space(),
+                aim,
                 intent,
             });
         }
@@ -151,8 +156,7 @@ pub fn player_weapon_face_mouse(
     let world_cpos: Vector2<CartesianSpace> = raw_world_cpos.to_space();
 
     let aim_pos = world_cpos - player_pos;
-    let aim_angle =
-        aim_pos.y.atan2(aim_pos.x) + wep_vis.offset;
+    let aim_angle = aim_pos.to_angle() + wep_vis.offset;
 
     rotate_active_weapon(&mut wep_tf, aim_angle);
 }
