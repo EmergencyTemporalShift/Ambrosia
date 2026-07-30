@@ -13,16 +13,13 @@ use crate::living::weapon_shooting::WeaponIntent;
 pub fn setup_projectile_observers(app: &mut App) {
     app.add_observer(|
         event: On<FireWeapon>,
-        mut wielder_q: Query<(&LinearVelocity, Option<&Team>)>,
+        wielder_q: Query<(&LinearVelocity, Option<&Team>)>,
         mut weapon_q: Query<(&Weapon, &ProjectileSpawner, Option<&mut FireRate>)>,
         projectiles: Query<&Projectile>,
         mut commands: Commands,
     | {
-        // 1. FILTER BY INTENT
         let intent = event.event().intent;
 
-        // If this is a semi-automatic weapon, you might want to strictly check `intent != WeaponIntent::BeginHold`.
-        // If it's fully automatic, you want to allow both BeginHold and ContinueHold, but NEVER ReleaseHold.
         if intent == WeaponIntent::ReleaseHold {
             return;
         }
@@ -32,21 +29,21 @@ pub fn setup_projectile_observers(app: &mut App) {
 
         let Ok((_weapon, spawner, mut fire_rate)) = weapon_q.get_mut(weapon) else { return; };
 
-        // 2. CHECK THE COOLDOWN TIMER
         if let Some(ref mut fr) = fire_rate {
             if !fr.0.is_finished() {
-                return; // The weapon is still cooling down, ignore the trigger pull
+                return;
             }
-            // Only reset the timer if we are actually proceeding to spawn a projectile
             fr.0.reset();
         }
 
-        // --- The rest of your code remains exactly the same ---
+        let Some((weapon_pos, aim)) = intent.spatial_data() else {
+            return;
+        };
 
-        let origin = event.event().weapon_pos;
-        let direction = (event.event().aim - origin).normalize_or_zero();
+        // FIXED: Calculate direction vector instead of using raw aim position
+        let direction = (aim - weapon_pos).normalize_or_zero();
 
-        let Ok(( vel, team_opt)) = wielder_q.get_mut(shooter) else {
+        let Ok((vel, team_opt)) = wielder_q.get(shooter) else {
             return;
         };
 
@@ -58,18 +55,19 @@ pub fn setup_projectile_observers(app: &mut App) {
             return;
         }
 
+        // FIXED: Using direction for velocity and angle math
         let shot_vel = direction * spawner.speed + vel.0.to_space();
         let angle = direction.y.atan2(direction.x);
 
-        let collision_layers  = build_team_interactions(team_opt);
+        let collision_layers = build_team_interactions(team_opt);
 
         commands.spawn((
             Name(spawner.projectile_name.clone().into()),
             Projectile { team, shooter, weapon },
             LifetimeTimer { remaining: spawner.lifetime },
-            Transform::from_translation(origin.to_bevy().extend(0.0))
+            Transform::from_translation(weapon_pos.to_bevy().extend(0.0))
                 .with_rotation(Quat::from_rotation_z(angle)),
-            LinearVelocity(shot_vel.to_bevy().normalize_or_zero()*40.0),
+            LinearVelocity(shot_vel.to_bevy()),
             Collider::rectangle(spawner.collider_width, spawner.collider_height),
             RigidBody::Dynamic,
             collision_layers,

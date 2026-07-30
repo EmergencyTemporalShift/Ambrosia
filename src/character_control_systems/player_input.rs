@@ -6,7 +6,6 @@ use bevy::window::PrimaryWindow;
 use leafwing_input_manager::prelude::*;
 #[cfg(feature = "egui")]
 use bevy_egui::EguiContexts;
-use glamour::Vector2;
 use crate::living::player::IsPlayer;
 use crate::living::{CharacterSprite, flip_sprite_for_direction};
 use crate::living::weapon_shooting::{FireWeapon, Weapon, WeaponInventory, WeaponIntent, WeaponVisualConfig, BeamTerminator};
@@ -65,17 +64,13 @@ pub fn player_fire_input(
     mut egui_contexts: EguiContexts,
 ) {
     #[cfg(feature = "egui")]
-    if egui_contexts
+    let egui_wants_pointer = egui_contexts
         .ctx_mut()
-        .map_or(false, |ctx| ctx.egui_wants_pointer_input())
-    {
-        return;
-    }
+        .map_or(false, |ctx| ctx.egui_wants_pointer_input());
+    #[cfg(not(feature = "egui"))]
+    let egui_wants_pointer = false;
 
     let (cam, cam_tf) = *camera;
-    let Some(cursor_pos) = window.cursor_position() else { return; };
-    let Ok(ray) = cam.viewport_to_world(cam_tf, cursor_pos) else { return; };
-    let world_pos = ray.origin.truncate();
 
     for (entity, transform, action_state, wp_inv) in &player {
         let Some(active_weapon_entity) = wp_inv.current() else {
@@ -84,39 +79,47 @@ pub fn player_fire_input(
 
         let is_pressed = action_state.pressed(&PlayerAction::Fire);
         let just_pressed = action_state.just_pressed(&PlayerAction::Fire);
-        let weapon_pos = transform.translation.truncate().to_space();
-        let aim = world_pos.to_space::<CartesianSpace>();
-
         let has_active_beam = active_beams.get(entity).is_ok();
 
-        if is_pressed {
-            // Determine intent based on whether the beam is already running
-            let intent = if just_pressed && !has_active_beam {
-                WeaponIntent::BeginHold
-            } else {
-                WeaponIntent::ContinueHold
-            };
-
-            if aim != Vector2::ZERO {
+        // 1. Release check: Runs even if mouse is off-screen or over UI
+        if !is_pressed {
+            if has_active_beam {
                 commands.trigger(FireWeapon {
                     wielder: entity,
                     weapon: active_weapon_entity,
-                    weapon_pos,
-                    aim,
-                    intent,
+                    intent: WeaponIntent::ReleaseHold,
                 });
             }
-        } else if has_active_beam {
-            // STATE-BASED RELEASE: If the button is not pressed, but a beam is
-            // still active, force the release immediately. No missed frames!
-            commands.trigger(FireWeapon {
-                wielder: entity,
-                weapon: active_weapon_entity,
-                weapon_pos,
-                aim,
-                intent: WeaponIntent::ReleaseHold,
-            });
+            continue;
         }
+
+        // 2. If clicking on UI, ignore new/continued firing
+        if egui_wants_pointer {
+            continue;
+        }
+
+        // 3. Aim check: Only run when actively trying to fire
+        let Some(cursor_pos) = window.cursor_position() else {
+            continue;
+        };
+        let Ok(ray) = cam.viewport_to_world(cam_tf, cursor_pos) else {
+            continue;
+        };
+
+        let weapon_pos = transform.translation.truncate().to_space();
+        let aim = ray.origin.truncate().to_space::<CartesianSpace>();
+
+        let intent = if just_pressed && !has_active_beam {
+            WeaponIntent::BeginHold { weapon_pos, aim }
+        } else {
+            WeaponIntent::ContinueHold { weapon_pos, aim }
+        };
+
+        commands.trigger(FireWeapon {
+            wielder: entity,
+            weapon: active_weapon_entity,
+            intent,
+        });
     }
 }
 
@@ -192,7 +195,7 @@ pub fn player_cycle_weapon(
         trigger_beam_fade(commands.reborrow(), player);
     }
 
-    // Handle mutually exclusive or simultaneous cancelations safely
+    // Handle mutually exclusive or simultaneous cancellations safely
     if next_pressed && !prev_pressed {
         inv.cycle(true);
     } else if prev_pressed && !next_pressed {

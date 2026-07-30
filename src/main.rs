@@ -1,11 +1,10 @@
 use bevy::prelude::*;
 #[allow(unused_imports)]
 use bevy::ecs::schedule::{LogLevel, ScheduleBuildSettings};
-use bevy::log::LogPlugin;
 
 
 fn main() {
-    let default_plugins = DefaultPlugins.set(ImagePlugin::default_nearest()).disable::<LogPlugin>();
+    let default_plugins = DefaultPlugins.set(ImagePlugin::default_nearest());//.disable::<LogPlugin>();
 
     #[cfg(feature = "pie")]
     {
