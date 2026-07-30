@@ -3,6 +3,7 @@ pub(crate) mod controls_other;
 pub(crate) mod units;
 pub mod particles;
 pub mod game_states;
+pub mod debug;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DetailedKeyState {
@@ -11,3 +12,4 @@ pub enum DetailedKeyState {
     JustReleased,  // True only on the release frame
     Idle,          // Optional: Key is not being interacted with
 }
+

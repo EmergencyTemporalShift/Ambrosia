@@ -1,9 +1,11 @@
+use crate::living::Team;
+use crate::util::units::CartesianSpace;
 use bevy::prelude::*;
 use glamour::Vector2;
-use crate::util::units::CartesianSpace;
 
 #[derive(Component)]
 pub struct Weapon {
+    pub weapon_kind: WeaponKind,
     pub damage: f32,
 }
 
@@ -31,13 +33,37 @@ pub enum WeaponKind {
 
 #[derive(Component, Reflect)]
 pub struct WeaponInventory {
-    pub slots: Vec<WeaponKind>,
+    // Keep this private so other systems can't arbitrarily push non-weapons
+    slots: Vec<Entity>,
     pub active: usize,
 }
 
 impl WeaponInventory {
-    pub fn current(&self) -> Option<WeaponKind> {
+
+    // Create a new inventory from a starting list
+    pub fn new(starting_weapons: Vec<Entity>) -> Self {
+        Self {
+            slots: starting_weapons,
+            active: 0,
+        }
+    }
+
+    // A system can call this to safely add a weapon, proving it has the component
+    pub fn add_weapon(&mut self, entity: Entity, weapon_query: &Query<&Weapon>) -> Result<(), &'static str> {
+        if weapon_query.contains(entity) {
+            self.slots.push(entity);
+            Ok(())
+        } else {
+            Err("Attempted to add an entity to WeaponInventory that does not have a Weapon component!")
+        }
+    }
+    
+    pub fn current(&self) -> Option<Entity> {
         self.slots.get(self.active).copied()
+    }
+
+    pub fn slots(&self) -> &[Entity] {
+        &self.slots
     }
 
     pub fn cycle(&mut self, forward: bool) {
@@ -52,12 +78,33 @@ impl WeaponInventory {
     }
 }
 
-#[derive(Component, Debug)]
-pub struct WeaponOffset {
-    pub(crate) offset: f32,
+#[derive(Component, Clone, Debug, Reflect)]
+pub struct WeaponVisualConfig {
+    pub texture_path: &'static str,
+    pub tile_size: UVec2,
+    pub columns: u32,
+    pub rows: u32,
+    pub initial_frame_index: usize,
+    pub sprite_scale: Vec3,
+    pub sprite_angle_offset: f32,
 }
 
-#[derive(Component)]
+impl Default for WeaponVisualConfig {
+    fn default() -> Self {
+        Self {
+            texture_path: "",
+            tile_size: UVec2::new(24, 24),
+            columns: 10,
+            rows: 1,
+            initial_frame_index: 0,
+            sprite_scale: Vec3::new(0.25, 0.25, 1.0),
+            sprite_angle_offset: 0.0,
+        }
+    }
+}
+
+
+#[derive(Component, Default)]
 #[require(Transform, Visibility)]
 pub struct WeaponSprite;
 
@@ -84,9 +131,12 @@ pub struct Beam {
 }
 
 #[derive(Component)]
-pub struct BeamActive {
+pub struct BeamTerminator {
     pub end_point: Vector2<CartesianSpace>,
 }
+
+#[derive(Component)]
+pub struct BeamFadeTimer(pub Timer);
 
 #[derive(Component)]
 pub struct BeamLine {
@@ -98,7 +148,10 @@ pub struct BeamLine {
 pub struct Melee {
     pub arc: f32,
     pub reach: f32,
-    pub damage: f32,
+}
+
+#[derive(Component)]
+pub struct Cooldown {
     pub cooldown: Timer,
 }
 
@@ -113,17 +166,8 @@ pub struct FireRate(pub Timer);
 
 #[derive(Component)]
 pub struct Projectile {
-    pub fired_by: Entity,
+    pub team: Team,
+    pub shooter: Entity,
+    pub weapon: Entity,
 }
 
-#[derive(Component, Default)]
-pub struct LifetimeTimer {
-    pub remaining: f32,
-}
-
-#[derive(Component)]
-#[require(Transform, LifetimeTimer)]
-pub struct DebugMarker {
-    pub color: Color,
-    pub radius: f32,
-}

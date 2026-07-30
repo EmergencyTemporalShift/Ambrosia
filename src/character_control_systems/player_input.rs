@@ -9,7 +9,9 @@ use bevy_egui::EguiContexts;
 use glamour::Vector2;
 use crate::living::player::IsPlayer;
 use crate::living::{CharacterSprite, flip_sprite_for_direction};
-use crate::living::weapon_shooting::{FireWeapon, Weapon, WeaponInventory, FireRate, WeaponKind, rotate_active_weapon, WeaponOffset, WeaponIntent};
+use crate::living::weapon_shooting::{FireWeapon, Weapon, WeaponInventory, WeaponIntent, WeaponVisualConfig, BeamTerminator};
+use crate::living::weapon_shooting::beam::trigger_beam_fade;
+use crate::living::weapon_shooting::weapon_system::rotate_active_weapon;
 use crate::util::game_states::GameState;
 use crate::util::units::{BevyVec2Ext, CartesianSpace, Vector2Ext, WindowSpace};
 
@@ -20,24 +22,36 @@ pub enum PlayerAction {
     CyclePrev,
 }
 
+#[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
+pub struct PlayerInputSet;
+
 pub struct PlayerInputPlugin;
 
 impl Plugin for PlayerInputPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(InputManagerPlugin::<PlayerAction>::default());
-        app.add_systems(Startup, setup_ui_text);
-        app.add_systems(Update, (
-            player_weapon_face_mouse,
-            player_fire_input,
-            player_cycle_weapon,
-            flip_sprite_to_mouse,
-        ).run_if(in_state(GameState::Running)));
 
-        // --- Debug Systems ---
-        app.add_systems(Update, (
-            update_weapon_selection_text,
-            debug_player_components,
-        ));
+        // FIX 1: Move immediate inputs and visual alignments to Update
+        app.add_systems(
+            Update,
+            (
+                player_weapon_face_mouse,
+                player_fire_input,
+                flip_sprite_to_mouse,
+                player_cycle_weapon,
+            )
+                .run_if(in_state(GameState::Running))
+                .in_set(PlayerInputSet),
+        );
+
+        app.add_systems(
+            Update,
+            (
+                update_weapon_selection_text,
+                debug_player_components,
+            )
+                .in_set(PlayerInputSet),
+        );
     }
 }
 
@@ -45,148 +59,147 @@ pub fn player_fire_input(
     mut commands: Commands,
     window: Single<&Window, With<PrimaryWindow>>,
     camera: Single<(&Camera, &GlobalTransform), With<Camera2d>>,
-    player: Query<(Entity, &Transform, Option<&FireRate>, &ActionState<PlayerAction>), (With<IsPlayer>, With<Weapon>)>,
+    player: Query<(Entity, &Transform, &ActionState<PlayerAction>, &WeaponInventory), With<IsPlayer>>,
+    active_beams: Query<&BeamTerminator>,
     #[cfg(feature = "egui")]
     mut egui_contexts: EguiContexts,
 ) {
-    #[cfg(not(feature = "egui"))]
-    let egui_wants_pointer_input = false;
     #[cfg(feature = "egui")]
-    let egui_wants_pointer_input = egui_contexts
+    if egui_contexts
         .ctx_mut()
-        .map(|ctx| ctx.egui_wants_pointer_input())
-        .unwrap_or(false);
-
-    if egui_wants_pointer_input {
+        .map_or(false, |ctx| ctx.egui_wants_pointer_input())
+    {
         return;
     }
 
     let (cam, cam_tf) = *camera;
-    let Some(cursor) = window.cursor_position() else {
-        return;
-    };
-    let Ok(ray) = cam.viewport_to_world(cam_tf, cursor) else {
-        return;
-    };
+    let Some(cursor_pos) = window.cursor_position() else { return; };
+    let Ok(ray) = cam.viewport_to_world(cam_tf, cursor_pos) else { return; };
     let world_pos = ray.origin.truncate();
 
-    for (entity, transform, fire_rate, action_state) in &player {
-        let intent = if action_state.just_pressed(&PlayerAction::Fire) {
-            WeaponIntent::BeginHold
-        } else if action_state.just_released(&PlayerAction::Fire) {
-            WeaponIntent::ReleaseHold
-        } else if action_state.pressed(&PlayerAction::Fire) {
-            WeaponIntent::ContinueHold
-        } else {
+    for (entity, transform, action_state, wp_inv) in &player {
+        let Some(active_weapon_entity) = wp_inv.current() else {
             continue;
         };
 
-        if intent != WeaponIntent::ReleaseHold {
-            if let Some(fr) = fire_rate {
-                if !fr.0.is_finished() {
-                    continue;
-                }
-            }
-        }
-
+        let is_pressed = action_state.pressed(&PlayerAction::Fire);
+        let just_pressed = action_state.just_pressed(&PlayerAction::Fire);
+        let weapon_pos = transform.translation.truncate().to_space();
         let aim = world_pos.to_space::<CartesianSpace>();
-        info!(
-        "Triggering FireWeapon!\n  player_pos: {:?}\n  world_pos: {:?}\n  aim: {:?}",
-        transform.translation.truncate(),
-        world_pos,
-        aim
-    );
-        if aim != Vector2::ZERO {
+
+        let has_active_beam = active_beams.get(entity).is_ok();
+
+        if is_pressed {
+            // Determine intent based on whether the beam is already running
+            let intent = if just_pressed && !has_active_beam {
+                WeaponIntent::BeginHold
+            } else {
+                WeaponIntent::ContinueHold
+            };
+
+            if aim != Vector2::ZERO {
+                commands.trigger(FireWeapon {
+                    wielder: entity,
+                    weapon: active_weapon_entity,
+                    weapon_pos,
+                    aim,
+                    intent,
+                });
+            }
+        } else if has_active_beam {
+            // STATE-BASED RELEASE: If the button is not pressed, but a beam is
+            // still active, force the release immediately. No missed frames!
             commands.trigger(FireWeapon {
                 wielder: entity,
-                weapon: entity,
-                weapon_pos: transform.translation.truncate().to_space(),
+                weapon: active_weapon_entity,
+                weapon_pos,
                 aim,
-                intent,
+                intent: WeaponIntent::ReleaseHold,
             });
         }
     }
 }
 
 pub fn player_weapon_face_mouse(
-    window: Single<&Window, With<PrimaryWindow>>,
-    camera: Single<(&Camera, &GlobalTransform), With<Camera2d>>,
-    player_q: Query<
-        &GlobalTransform,
-        With<IsPlayer>,
-    >,
-    mut weapon_q: Query<
-        (&mut Transform, &WeaponOffset),
-    >,
+    window_q: Query<&Window, With<PrimaryWindow>>,
+    camera_q: Query<(&Camera, &GlobalTransform), With<Camera2d>>,
+    player_q: Query<(&GlobalTransform, &WeaponInventory), With<IsPlayer>>,
+    mut weapon_q: Query<(&mut Transform, Option<&WeaponVisualConfig>), With<Weapon>>,
 ) {
-    let (cam, cam_tf) = *camera;
+    // 1. Extract required world entities
+    let Ok(window) = window_q.single() else { return; };
+    let Ok((camera, camera_gtf)) = camera_q.single() else { return; };
+    let Ok((player_gtf, inventory)) = player_q.single() else { return; };
 
-    let player_pos = player_q
-        .single()
-        .expect("Incorrect number of players")
-        .translation()
-        .truncate()
-        .to_space();
-
-    // Guard clause for weapon transforms
-    let (mut wep_tf, wep_vis) = match weapon_q.single_mut() {
-        Ok(components) => components,
-        Err(err) => {
-            match err {
-                QuerySingleError::NoEntities(_) => {
-                    println!("Failed to get weapon: 0 entities matched the query.");
-                }
-                QuerySingleError::MultipleEntities(_) => {
-                    let total_count = weapon_q.iter().count();
-                    println!("Failed to get weapon: expected 1, but found {} entities.", total_count);
-                }
-            }
-            return;
-        }
-    };
-    // --- Guard clause, ensure mouse is on screen.
-    let Some(pre_cpos) = window.cursor_position() else {
+    // 2. Look up the active weapon
+    let Some(active_weapon_entity) = inventory.current() else { return; };
+    let Ok((mut weapon_tf, visual_config)) = weapon_q.get_mut(active_weapon_entity) else {
         return;
     };
 
-    let cpos = pre_cpos.to_space::<WindowSpace>();
-    let Ok(raw_world_cpos) = cam.viewport_to_world_2d(cam_tf, cpos.to_bevy()) else {
+    // 3. Resolve cursor to world coordinates
+    let Some(cursor_pos) = window.cursor_position() else { return; };
+    let window_cursor = cursor_pos.to_space::<WindowSpace>();
+
+    let Ok(world_cursor) = camera.viewport_to_world_2d(camera_gtf, window_cursor.to_bevy()) else {
         return;
     };
-    let world_cpos: Vector2<CartesianSpace> = raw_world_cpos.to_space();
 
-    let aim_pos = world_cpos - player_pos;
-    let aim_angle = aim_pos.to_angle() + wep_vis.offset;
+    // 4. Calculate aim vector & target angle
+    let player_pos = player_gtf.translation().truncate().to_space();
+    let aim_vector = world_cursor.to_space::<CartesianSpace>() - player_pos;
 
-    rotate_active_weapon(&mut wep_tf, aim_angle);
+    let sprite_offset = visual_config
+        .map(|config| config.sprite_angle_offset)
+        .unwrap_or(0.0);
+
+    let aim_angle = aim_vector.to_angle() + sprite_offset;
+
+    rotate_active_weapon(&mut weapon_tf, aim_angle);
 }
 
 pub fn player_cycle_weapon(
-    mut inventory_q: Query<(&mut WeaponInventory, &ActionState<PlayerAction>), (With<IsPlayer>, With<Weapon>)>,
+    mut commands: Commands,
+    mut inventory_q: Query<(Entity, &mut WeaponInventory, &ActionState<PlayerAction>), With<IsPlayer>>,
+    wielders_q: Query<&BeamTerminator>,
     #[cfg(feature = "egui")]
     mut egui_contexts: EguiContexts,
 ) {
-    let Ok((mut inv, action_state)) = inventory_q.single_mut() else { return };
-
-    #[cfg(not(feature = "egui"))]
-    let egui_wants_pointer_input = false;
     #[cfg(feature = "egui")]
-    let egui_wants_pointer_input = egui_contexts
+    if egui_contexts
         .ctx_mut()
-        .map(|ctx| ctx.egui_wants_pointer_input())
-        .unwrap_or(false);
-
-    if egui_wants_pointer_input {
+        .map_or(false, |ctx| ctx.egui_wants_pointer_input())
+    {
         return;
     }
 
-    if action_state.just_pressed(&PlayerAction::CycleNext) {
-        inv.cycle(true);
+    let Ok((player, mut inv, action_state)) = inventory_q.single_mut() else {
+        return;
+    };
+
+    // Determine the number of steps to cycle forward or backward.
+    // If CycleNext/CyclePrev are digital, value() returns 1.0 when pressed.
+    // If mapped to a continuous scroll axis, this can accumulate multiple ticks in a single frame.
+    let next_pressed = action_state.just_pressed(&PlayerAction::CycleNext);
+    let prev_pressed = action_state.just_pressed(&PlayerAction::CyclePrev);
+
+    if !next_pressed && !prev_pressed {
+        return;
     }
-    if action_state.just_pressed(&PlayerAction::CyclePrev) {
+
+    // Fade out the beam if active before switching weapons
+    if wielders_q.get(player).is_ok() {
+        trigger_beam_fade(commands.reborrow(), player);
+    }
+
+    // Handle mutually exclusive or simultaneous cancelations safely
+    if next_pressed && !prev_pressed {
+        inv.cycle(true);
+    } else if prev_pressed && !next_pressed {
         inv.cycle(false);
     }
 }
+
 
 pub fn flip_sprite_to_mouse(
     camera_query: Single<(&Camera, &GlobalTransform)>,
@@ -216,7 +229,7 @@ pub fn flip_sprite_to_mouse(
 #[derive(Component)]
 pub struct DebugTextTag;
 
-pub fn setup_ui_text(mut commands: Commands) {
+pub fn setup_weapon_text(mut commands: Commands) {
     commands.spawn((
         Text::new("Weapon Status: Unknown"),
         TextFont {
@@ -234,18 +247,25 @@ pub fn setup_ui_text(mut commands: Commands) {
 }
 
 pub fn update_weapon_selection_text(
-    player_query: Query<Option<&WeaponKind>, With<IsPlayer>>,
+    player_q: Query<&WeaponInventory, With<IsPlayer>>,
+    weapon_q: Query<&Weapon>,
     mut text_query: Query<&mut Text, With<DebugTextTag>>,
 ) {
-    let Ok(mut text) = text_query.single_mut() else { return };
+    let Ok(mut text): std::result::Result<Mut<Text>, QuerySingleError> = text_query.single_mut() else { return };
+    let Ok(inventory) = player_q.single() else { return };
 
-    let Ok(weapon_kind_opt) = player_query.single() else { return };
+    if let Some(active_entity) = inventory.current() {
+        let entity_id = active_entity;
 
-    match weapon_kind_opt {
-        Some(kind) => text.0 = format!("Weapon Equipped: {:?}", kind),
-        None => text.0 = "Weapon Equipped: None".to_string(),
+        if let Ok(weapon) = weapon_q.get(entity_id) {
+            text.0 = format!("Weapon Equipped: {:?}", weapon.weapon_kind);
+            return;
+        }
     }
+
+    text.0 = "Weapon Equipped: None".to_string();
 }
+
 
 pub fn debug_player_components(
     player_query: Query<Entity, With<IsPlayer>>,

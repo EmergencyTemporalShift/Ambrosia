@@ -6,13 +6,11 @@ use super::events::FireWeapon;
 
 pub fn setup_melee_observers(app: &mut App) {
     app.add_observer(|
-        // 1. Listen for the FireWeapon event payload
         event: On<FireWeapon>,
-        // 2. Fetch combat data specifically for the wielder targeting this event
-        mut wielders: Query<(&Weapon, &mut Melee, Option<&mut FireRate>, Option<&Team>)>,
-        // 3. Keep your targets query exactly as it was
-        targets: Query<(Entity, &Transform, Option<&Team>)>,
-        mut commands: Commands,
+        //mut commands: Commands,
+        wielder_q: Query<(&Transform, &Team)>,
+        mut weapon_q: Query<(&Weapon, &Melee, &mut Cooldown,)>,
+        mut targets: Query<(Entity, &Transform, &Team, &mut Health)>,
     | {
         // Extract values from the event payload wrapper
         let wielder = event.event().wielder;
@@ -20,32 +18,28 @@ pub fn setup_melee_observers(app: &mut App) {
         let direction = event.event().aim - origin;
 
         // Pull the components of the specific combatant who swung the weapon
-        let Ok((_, mut melee, mut fire_rate, wielder_team)) = wielders.get_mut(wielder) else {
+        let Ok((_transform, team)) = wielder_q.get(wielder) else {
+            return;
+        };
+
+        let Ok((weapon, melee, mut cooldown)) = weapon_q.get_mut(event.event().weapon) else {
             return;
         };
 
         // Cooldown enforcement remains identical
-        if !melee.cooldown.is_finished() {
+        if !cooldown.cooldown.is_finished() {
             return;
         }
-
-        melee.cooldown.reset();
-        if let Some(ref mut fr) = fire_rate {
-            fr.0.reset();
-        }
+        cooldown.cooldown.reset();
 
         // Iterate over potential victims in the world
-        for (target, target_tf, target_team) in &targets {
+        for (target_ent, target_tf, target_team, mut target_health) in &mut targets {
             // Self-harm check
-            if target == wielder {
+            if target_ent == wielder {
                 continue;
             }
-
-            // Friendly fire checking rules
-            if let (Some(w_team), Some(t_team)) = (wielder_team, target_team) {
-                if w_team == t_team {
-                    continue;
-                }
+            if !team.is_hostile_to(target_team) {
+                continue; // Skip teammates/neutrals
             }
 
             // Arc and range math rules remain identical
@@ -56,7 +50,7 @@ pub fn setup_melee_observers(app: &mut App) {
             let dist = target_tf.translation.truncate().distance(origin.to_bevy());
 
             if dot > (melee.arc / 2.0).cos() && dist <= melee.reach {
-                commands.entity(target).insert(Health(-melee.damage));
+                target_health.0 -= weapon.damage; // assuming Health wraps a float
             }
         }
     });

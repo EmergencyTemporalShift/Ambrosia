@@ -54,11 +54,15 @@ use crate::util::particles::{pause_particle_spawners, unpause_particle_spawners,
 
 #[cfg(feature = "egui")]
 use crate::character_control_systems::info_dumping_systems::character_control_info_dumping_system;
+use crate::character_control_systems::player_input::{PlayerInputPlugin, PlayerInputSet};
+use crate::character_control_systems::WeaponPlugin;
+use crate::living::weapon_shooting::WeaponSet;
 #[cfg(feature = "egui")]
 use crate::ui::plotting::plot_source_rolling_update;
 #[cfg(feature = "egui")]
 use crate::ui::plugin::DemoInfoUpdateSystems;
 use crate::ui::systems::inspector_ui;
+use crate::util::debug::draw_debug_markers;
 
 /// Systems that should only run when the editor's play gate is active (or always in standalone).
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
@@ -123,12 +127,13 @@ impl Plugin for GamePlugin {
 
         // --- Living and Weapon systems ---
         app.add_plugins((
-            character_control_systems::WeaponPlugin,
-            character_control_systems::player_input::PlayerInputPlugin,
+            WeaponPlugin,
+            PlayerInputPlugin,
             EnemyPlugin,
             LivingPlugin,
             OtherControlsPlugin,
-        ));
+        ))
+            .configure_sets(Update, (PlayerInputSet, WeaponSet).chain());
 
         // --- Core Gameplay Systems ---
         app.add_systems(
@@ -143,6 +148,7 @@ impl Plugin for GamePlugin {
         // --- UI, Rendering & Debug ---
         app.add_plugins(DemoUi::<DemoControlScheme>::default());
         app.add_systems(Startup, helper2d::setup_camera);
+        app.add_systems(Update, (draw_debug_markers,));
 
         #[cfg(feature = "egui")]
         {

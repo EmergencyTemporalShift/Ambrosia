@@ -24,7 +24,7 @@ fn handle_despawn(
 ) {
     for (entity, mut ttd) in query.iter_mut() {
         if ttd.0.tick(time.delta()).just_finished() {
-            commands.entity(entity).despawn();
+            commands.entity(entity).try_despawn();
         }
     }
 }

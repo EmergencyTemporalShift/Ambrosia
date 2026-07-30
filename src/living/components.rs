@@ -7,6 +7,7 @@ pub enum Team {
     Neutral,
     Player,
     Enemy,
+    Hazard,
 }
 
 /// Simple health component.

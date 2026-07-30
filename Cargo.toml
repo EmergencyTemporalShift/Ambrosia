@@ -9,7 +9,7 @@ default = ["avian2d", "egui"]
 
 egui = ["dep:bevy_egui", "dep:egui_plot", "dep:egui_extras", "dep:bevy-inspector-egui"]
 
-framepace = ["dep:bevy_framepace"] # Not a default feature
+framepace = ["dep:bevy_framepace"]
 
 f64 = [
     "avian2d?/f64",
@@ -25,6 +25,7 @@ avian2d = ["avian", "dep:avian2d", "dep:bevy-tnua-avian2d", "avian2d/f32", "avia
 bevy = { version = "0.19", features = [
     "gltf_animation",
     "reflect_auto_register",
+    "track_location",
 ] }
 
 
@@ -54,6 +55,7 @@ glamour = "0.18.0"
 jackdaw_runtime = "0.4.1"
 egui = "0.35.0"
 leafwing-input-manager = "0.21.0"
+bevy_mod_debugdump = "0.16.0"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 web-sys = { version = "0.3", features = ["Window", "Location", "Url", "UrlSearchParams"] }

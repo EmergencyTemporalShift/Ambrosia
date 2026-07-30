@@ -45,6 +45,7 @@ pub fn setup_enemy(
     mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
     asset_server: Res<AssetServer>,
 ) {
+
     let _enemy_entity = spawn_living(
         &mut commands,
         &asset_server,

@@ -11,8 +11,8 @@ pub enum WeaponIntent {
 
 #[derive(Event)]
 pub struct FireWeapon {
-    pub wielder: Entity,
-    pub weapon: Entity,
+    pub wielder: Entity, // The player/character entity (has LinearVelocity, Team, etc.)
+    pub weapon: Entity,  // The weapon entity (has ProjectileSpawner, Melee, Beam, FireRate, etc.)
     pub weapon_pos: Vector2<CartesianSpace>,
     pub aim: Vector2<CartesianSpace>,
     pub intent: WeaponIntent,
