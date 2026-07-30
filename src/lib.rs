@@ -5,6 +5,7 @@
 //! can discover their reflected types; `main.rs` keeps only the window
 //! and ambient-plugin setup.
 
+use crate::character_control_systems::platformer_control_scheme::JustPressedCachePlugin;
 use avian2d::prelude::*;
 use bevy::prelude::*;
 use bevy_hanabi::prelude::*;
@@ -38,7 +39,7 @@ use crate::character_control_systems::platformer_control_scheme::{
     DemoControlScheme, DemoControlSchemeAirActions,
 };
 use crate::character_control_systems::platformer_control_systems::{
-    apply_platformer_controls, JustPressedCachePlugin,
+    apply_platformer_controls, JustPressedCache,
 };
 use crate::level_mechanics::LevelMechanicsPlugin;
 use crate::levels_setup::level_switching::LevelSwitchingPlugin;

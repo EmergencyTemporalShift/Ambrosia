@@ -11,7 +11,7 @@ use crate::character_control_systems::Dimensionality;
 use crate::character_control_systems::platformer_control_scheme::{
     DemoControlScheme, DemoControlSchemeConfig,
 };
-use crate::character_control_systems::platformer_control_systems::CharacterMotionConfigForPlatformerDemo;
+use crate::character_control_systems::platformer_control_scheme::CharacterMotionConfigForPlatformerDemo;
 use crate::character_control_systems::player_input::PlayerAction;
 use crate::levels_setup::for_2d_platformer::LayerNames;
 use crate::ui::component_alteration::CommandAlteringSelectors;

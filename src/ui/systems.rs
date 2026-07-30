@@ -9,7 +9,7 @@ use bevy_tnua_physics_integration_layer::data_for_backends::TnuaToggle;
 use bevy_tnua_physics_integration_layer::math::Vector3;
 use egui::collapsing_header::HeaderResponse;
 use egui::Color32;
-use crate::character_control_systems::platformer_control_systems::CameraControllerFloating;
+use crate::character_control_systems::platformer_control_scheme::CameraControllerFloating;
 use crate::ui::component_alteration::CommandAlteringSelectors;
 use crate::ui::{framerate, info, level_selection, plotting};
 use crate::ui::components::{DemoUiPhysicsBackendSettings, Hierarchy, TrackedEntity};
