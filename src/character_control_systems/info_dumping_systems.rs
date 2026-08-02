@@ -1,3 +1,4 @@
+#![allow(clippy::needless_pass_by_value)]
 use bevy::{color::palettes::css, prelude::*};
 use bevy_tnua::TnuaSensorsSet;
 use bevy_tnua::prelude::TnuaController;
@@ -48,17 +49,15 @@ pub fn character_control_info_dumping_system(
                 info_source.label(&label, "<Nothing>");
             }
             if let Some(ghost_sensor) = ghost_sensor.as_ref() {
-                let mut text = String::new();
-                for hit in ghost_sensor.iter() {
-                    if !text.is_empty() {
-                        text.push_str(", ");
-                    }
-                    if let Ok(name) = names_query.get(hit.entity) {
-                        text.push_str(name.as_str());
-                    } else {
-                        text.push_str(&format!("{:?}", hit.entity));
-                    }
-                }
+                let text = ghost_sensor
+                    .iter()
+                    .map(|hit| match names_query.get(hit.entity) {
+                        Ok(name) => name.to_string(),
+                        Err(_) => format!("{:?}", hit.entity),
+                    })
+                    .collect::<Vec<_>>()
+                    .join(", ");
+
                 info_source.label(&format!("{sensor_entity} ghost"), text);
             }
         }
@@ -69,8 +68,7 @@ pub fn character_control_info_dumping_system(
                     names_query
                         .get(entity)
                         .ok()
-                        .map(|name| name.to_string())
-                        .unwrap_or_else(|| format!("{entity}"))
+                        .map_or_else(|| format!("{entity}"), ToString::to_string)
                 })
                 .collect::<Vec<_>>();
             obstacles.sort();
@@ -82,6 +80,7 @@ pub fn character_control_info_dumping_system(
 //noinspection RsConstantConditionIf
 pub fn character_control_radar_visualization_system(
     query: Query<&TnuaObstacleRadar>,
+    #[allow(clippy::needless_pass_by_value)]
     spatial_ext: SpatialExtFacade,
     mut gizmos: Gizmos,
 ) {

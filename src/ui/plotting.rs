@@ -1,3 +1,4 @@
+#![allow(clippy::needless_pass_by_value)]
 use bevy::prelude::*;
 use std::collections::VecDeque;
 
@@ -19,9 +20,9 @@ pub struct PlotSource {
 impl Default for PlotSource {
     fn default() -> Self {
         Self {
-            input: Default::default(),
-            fields: Default::default(),
-            rolling: Default::default(),
+            input: Vec::default(),
+            fields: Vec::default(),
+            rolling: VecDeque::default(),
             last_update: f32::NEG_INFINITY,
             update_every: 1.0 / 24.0,
             keep: 5.0,
@@ -54,9 +55,9 @@ impl PlotSource {
             .collect::<Vec<_>>();
         let mut it = self.rolling.iter();
         while let Some(timestamp) = it.next() {
-            for plot_data in plots_data.iter_mut() {
+            for plot_data in &mut plots_data {
                 for curve in plot_data.iter_mut() {
-                    curve.push([*timestamp as f64, *it.next().unwrap() as f64]);
+                    curve.push([f64::from(*timestamp), f64::from(*it.next().unwrap())]);
                 }
             }
         }
@@ -99,7 +100,7 @@ pub fn plot_source_rolling_update(time: Res<Time>, mut query: Query<&mut PlotSou
         let record_width = 1 + plot_source
             .fields
             .iter()
-            .map(|flds| flds.len())
+            .map(std::vec::Vec::len)
             .sum::<usize>();
         while let Some(timestamp) = plot_source.rolling.front() {
             assert!(0 < record_width);

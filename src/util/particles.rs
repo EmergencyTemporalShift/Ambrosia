@@ -1,3 +1,4 @@
+#![allow(clippy::needless_pass_by_value)]
 use bevy::prelude::*;
 use bevy_hanabi::prelude::*;
 

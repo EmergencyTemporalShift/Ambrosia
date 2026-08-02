@@ -1,6 +1,6 @@
 use std::f32::consts::{FRAC_PI_3, FRAC_PI_4};
 use bevy::prelude::*;
-use super::components::*;
+use super::components::{WeaponKind, Weapon, WeaponVisualConfig, ProjectileSpawner, FireRate, Melee, Cooldown, Beam};
 
 // pub(crate) fn weapon_bundle(kind: WeaponKind) -> (
 //     Weapon,

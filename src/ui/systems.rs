@@ -1,3 +1,4 @@
+#![allow(clippy::needless_pass_by_value)]
 use avian2d::math::{Vector2, PI};
 use bevy::asset::Assets;
 use bevy::pbr::StandardMaterial;
@@ -25,6 +26,16 @@ pub fn apply_selectors(
     for (entity, mut command_altering_selectors) in query.iter_mut() {
         command_altering_selectors.apply_set_to(&mut commands, entity);
     }
+}
+
+#[derive(Clone, Copy, PartialEq, Default, Debug)]
+enum ThingToShow {
+    #[default]
+    Settings,
+    Plots,
+    Info,
+    Camera,
+    Hierarchy,
 }
 
 // This is an exclusive system so that it can hold `&mut World`: the embedded `bevy-inspector-egui`
@@ -57,7 +68,7 @@ pub fn ui_system<
     mut commands: Commands,
     mut primary_window_query: Query<(&mut Window, &CursorOptions), With<PrimaryWindow>>,
     mut level_selection: level_selection::LevelSelectionParam,
-    mut framerate: framerate::DemoFramerateParam,
+    framerate: framerate::DemoFramerateParam,
     mut control_scheme_config_assets: ResMut<Assets<S::Config>>,
     #[cfg(target_arch = "wasm32")] app_setup_configuration: Res<
         crate::app_setup_options::AppSetupConfiguration,
@@ -160,15 +171,7 @@ pub fn ui_system<
                 false,
             );
 
-            #[derive(Clone, Copy, PartialEq, Default, Debug)]
-            enum ThingToShow {
-                #[default]
-                Settings,
-                Plots,
-                Info,
-                Camera,
-                Hierarchy,
-            }
+
 
             let thing_to_show_id =
                 ui.make_persistent_id((TypeId::of::<ThingToShow>(), entity));
@@ -201,7 +204,7 @@ pub fn ui_system<
                                 ui.memory_mut(|mem| {
                                     *mem.data.get_temp_mut_or_default::<ThingToShow>(
                                         thing_to_show_id,
-                                    ) = option
+                                    ) = option;
                                 });
                             }
                         }
@@ -227,7 +230,7 @@ pub fn ui_system<
                                 TnuaToggle::SenseOnly,
                                 TnuaToggle::Enabled,
                             ] {
-                                let label = format!("{:?}", option);
+                                let label = format!("{option:?}");
                                 ui.selectable_value(tnua_toggle.as_mut(), option, label);
                             }
                         });
@@ -268,12 +271,11 @@ pub fn ui_system<
                     }
                 }
                 ThingToShow::Camera => {
-                    use core::ops::DerefMut;
                     if let Some(mut camera) = camera_controller {
                         let CameraControllerFloating {
                             looking_from: from,
                             looking_to: to,
-                        } = camera.deref_mut();
+                        } = &mut *camera;
                         ui.label("Looking From: ");
                         ui.add(egui::Slider::new(&mut from.x, -30.0..=30.0));
                         ui.add(egui::Slider::new(&mut from.y, -30.0..=30.0));
@@ -290,7 +292,7 @@ pub fn ui_system<
                         ui.label("Available Entities:");
                         // TODO: Connect this to selection logic for switching between entities
                         for &ent in &hierarchy.entities {
-                            ui.label(format!("Entity {:?}", ent));
+                            ui.label(format!("Entity {ent:?}"));
                         }
                         if hierarchy.entities.is_empty() {
                             ui.colored_label(Color32::BLUE, "No entities tracked");

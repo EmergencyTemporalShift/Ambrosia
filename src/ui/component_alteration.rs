@@ -25,6 +25,7 @@ enum CommandAlteringSelector {
 
 #[allow(clippy::type_complexity)]
 impl CommandAlteringSelectors {
+    #[must_use]
     pub fn with_combo(
         mut self,
         caption: &str,
@@ -42,7 +43,7 @@ impl CommandAlteringSelectors {
         });
         self
     }
-
+    #[must_use]
     pub fn with_checkbox(
         mut self,
         caption: &str,
@@ -59,7 +60,7 @@ impl CommandAlteringSelectors {
     }
 
     pub fn apply_set_to(&mut self, commands: &mut Commands, entity: Entity) {
-        for selector in self.0.iter_mut() {
+        for selector in &mut self.0 {
             match selector {
                 CommandAlteringSelector::Combo {
                     chosen,
@@ -89,7 +90,7 @@ impl CommandAlteringSelectors {
 
     #[cfg(feature = "egui")]
     pub fn show_ui(&mut self, ui: &mut egui::Ui, commands: &mut Commands, entity: Entity) {
-        for selector in self.0.iter_mut() {
+        for selector in &mut self.0 {
             match selector {
                 CommandAlteringSelector::Combo {
                     chosen,

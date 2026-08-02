@@ -29,7 +29,7 @@ pub struct DemoFramerateParam<'w> {
 }
 
 impl DemoFramerateParam<'_> {
-    pub fn show_in_ui(&mut self, ui: &mut egui::Ui) {
+    pub fn show_in_ui(&self, ui: &mut egui::Ui) {
         for (diagnostic_path, range) in [
             (FrameTimeDiagnosticsPlugin::FPS, 0.0..120.0),
             (FrameTimeDiagnosticsPlugin::FRAME_TIME, 0.0..50.0),
@@ -41,14 +41,16 @@ impl DemoFramerateParam<'_> {
                 0.0..40_000.0,
             ),
         ] {
+            #[allow(clippy::cast_possible_truncation)]
             if let Some(diagnostic) = self.diagnostics_store.get(&diagnostic_path)
                 && let Some(value) = diagnostic.smoothed()
             {
                 ui.add(
                     egui::widgets::ProgressBar::new(
+                        
                         (value as f32 - range.start) / (range.end - range.start),
                     )
-                    .text(format!("{}: {:.0}", diagnostic_path, value)),
+                    .text(format!("{diagnostic_path}: {value:.0}")),
                 );
             }
         }

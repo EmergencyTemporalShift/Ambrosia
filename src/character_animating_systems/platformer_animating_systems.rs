@@ -58,12 +58,10 @@ pub fn animate_platformer_character(
                     // jump animation or the fall animation.
                     match state.memory {
                         TnuaBuiltinJumpMemory::NoJump => continue,
-                        TnuaBuiltinJumpMemory::StartingJump { .. } => AnimationState::Jumping,
+                        TnuaBuiltinJumpMemory::StartingJump { .. } | TnuaBuiltinJumpMemory::MaintainingJump { .. } | TnuaBuiltinJumpMemory::StoppedMaintainingJump => AnimationState::Jumping,
                         TnuaBuiltinJumpMemory::SlowDownTooFastSlopeJump { .. } => {
                             AnimationState::Jumping
                         }
-                        TnuaBuiltinJumpMemory::MaintainingJump { .. } => AnimationState::Jumping,
-                        TnuaBuiltinJumpMemory::StoppedMaintainingJump => AnimationState::Jumping,
                         TnuaBuiltinJumpMemory::FallSection => AnimationState::Falling,
                     }
                 }

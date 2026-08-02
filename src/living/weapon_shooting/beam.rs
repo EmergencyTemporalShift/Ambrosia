@@ -1,12 +1,13 @@
 use bevy::prelude::*;
 use avian2d::prelude::*;
 use crate::util::particles::ParticleEffectHandle;
-use super::components::*;
+use super::components::{Beam, BeamTerminator, BeamLine, BeamFadeTimer};
 use super::events::FireWeapon;
 
 use bevy::render::mesh::PrimitiveTopology;
 use bevy::render::mesh::Indices;
 use bevy::asset::RenderAssetUsages;
+#[allow(clippy::wildcard_imports)]
 use bevy::color::palettes::basic::*;
 use bevy::ecs::observer::On;
 use glamour::Vector2;

@@ -12,11 +12,12 @@ impl Plugin for TimeToDespawnPlugin {
 pub struct TimeToDespawn(Timer);
 
 impl TimeToDespawn {
+    #[must_use]
     pub fn from_seconds(duration: f32) -> Self {
         Self(Timer::from_seconds(duration, TimerMode::Once))
     }
 }
-
+#[allow(clippy::needless_pass_by_value)]
 fn handle_despawn(
     time: Res<Time>,
     mut query: Query<(Entity, &mut TimeToDespawn)>,

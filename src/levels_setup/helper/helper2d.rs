@@ -1,3 +1,4 @@
+#![allow(clippy::needless_pass_by_value)]
 use bevy::{
     color::palettes::css,
     ecs::system::{EntityCommands, SystemParam},

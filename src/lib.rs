@@ -191,7 +191,8 @@ pub mod play_gate {
     }
 
     #[cfg(not(feature = "editor"))]
-    pub fn is_playing() -> bool {
+    #[must_use]
+    pub const fn is_playing() -> bool {
         true
     }
 }

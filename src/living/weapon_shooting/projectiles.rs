@@ -1,7 +1,8 @@
-use super::components::*;
+#![allow(clippy::needless_pass_by_value)]
+use super::components::{Weapon, ProjectileSpawner, FireRate, Projectile};
 use super::events::FireWeapon;
 //use bevy::color::palettes::basic::{GREEN, PURPLE, RED, YELLOW};
-use crate::living::{GameLayer::*, Team};
+use crate::living::{GameLayer::{FriendlyProjectile, World, EnemyUnit, EnemyProjectile, FriendlyUnit, HazardProjectile}, Team};
 use avian2d::prelude::*;
 use bevy::prelude::*;
 
@@ -116,7 +117,7 @@ pub fn enable_projectile_wielder_collisions(
 
 fn build_team_interactions(team_opt: Option<&Team> ) -> CollisionLayers {
     match team_opt {
-        Some(Team::Player) | Some(Team::Neutral) | None => CollisionLayers::new(
+        Some(Team::Player | Team::Neutral) | None => CollisionLayers::new(
             FriendlyProjectile,
             [World, EnemyUnit, EnemyProjectile],
         ),

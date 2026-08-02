@@ -16,7 +16,7 @@ impl Plugin for CannonPlugin {
         app.add_systems(Update, (shoot, handle_collision));
     }
 }
-
+#[allow(clippy::needless_pass_by_value)]
 fn shoot(
     time: Res<Time>,
     mut query: Query<(&mut Cannon, &GlobalTransform, Option<&Name>)>,

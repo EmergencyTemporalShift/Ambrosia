@@ -1,3 +1,5 @@
+#![allow(clippy::needless_pass_by_value)]
+
 use std::time::Duration;
 
 use bevy::{
@@ -34,7 +36,7 @@ pub struct LevelSwitchingPlugin {
 impl LevelSwitchingPlugin {
     pub fn new(default_level: Option<impl ToString>) -> Self {
         Self {
-            levels: Default::default(),
+            levels: Vec::default(),
             default_level: default_level.map(|name| name.to_string()),
         }
     }
@@ -49,7 +51,7 @@ impl LevelSwitchingPlugin {
             Box::new(move |world| world.register_system(system.clone())),
         ));
     }
-
+    #[must_use]
     pub fn with<M>(
         mut self,
         name: impl ToString,
@@ -58,12 +60,12 @@ impl LevelSwitchingPlugin {
         self.add(name, system);
         self
     }
-
+    #[must_use]
     pub fn without(mut self, name: &str) -> Self {
         self.levels.retain(|(level_name, _)| level_name != name);
         self
     }
-
+    #[must_use]
     pub fn with_levels(mut self, levels_adder: impl FnOnce(&mut Self)) -> Self {
         levels_adder(&mut self);
         self
@@ -104,6 +106,7 @@ pub struct SwitchableLevel {
 }
 
 impl SwitchableLevel {
+    #[must_use]
     pub fn name(&self) -> &str {
         &self.name
     }
@@ -119,6 +122,7 @@ pub struct SwitchableLevels {
 }
 
 impl SwitchableLevels {
+    #[must_use]
     pub fn current(&self) -> &SwitchableLevel {
         &self.levels[self.current]
     }
@@ -166,7 +170,7 @@ fn handle_player_positioning(
         player.transform.translation = position_player.position;
 
         if let Some(velocity) = player.avian2d_linear_velocity.as_mut() {
-            velocity.0 = Default::default();
+            velocity.0 = Vec2::default();
         }
         if let Some(velocity) = player.avian2d_angular_velocity.as_mut() {
             velocity.0 = Default::default();

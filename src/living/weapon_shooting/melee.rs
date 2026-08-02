@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use crate::living::{Health, Team};
 use crate::util::units::{BevyVec2Ext, CartesianSpace, Vector2Ext};
-use super::components::*;
+use super::components::{Weapon, Melee, Cooldown};
 use super::events::FireWeapon;
 
 pub fn setup_melee_observers(app: &mut App) {

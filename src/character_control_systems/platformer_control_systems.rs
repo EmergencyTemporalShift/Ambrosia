@@ -24,6 +24,7 @@ use bevy_tnua::{
     builtins::{TnuaBuiltinJump, TnuaBuiltinWalk},
     control_helpers::TnuaSimpleFallThroughPlatformsHelper,
 };
+use bevy_tnua::builtins::TnuaBuiltinCrouch;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -47,7 +48,8 @@ use super::{
 #[allow(
     clippy::type_complexity,
     clippy::too_many_arguments,
-    clippy::useless_conversion
+    clippy::useless_conversion,
+    clippy::needless_pass_by_value,
 )]
 pub fn apply_platformer_controls(
     #[cfg(feature = "egui")] mut egui_context: EguiContexts,
@@ -101,16 +103,16 @@ pub fn apply_platformer_controls(
     {
         if !*is_egui_initialized {
             *is_egui_initialized = true;
-        } else if let Ok(ctx) = egui_context.ctx_mut() {
-            if ctx.egui_wants_keyboard_input() {
+        } else if let Ok(ctx) = egui_context.ctx_mut() &&
+            ctx.egui_wants_keyboard_input() {
                 for (mut controller, ..) in query.iter_mut() {
                     // The basis remembers its last frame status, so if we cannot feed it proper input this
                     // frame (for example, because the GUI takes the input focus), we need to neutralize it.
-                    controller.basis = Default::default();
+                    controller.basis = TnuaBuiltinWalk::default();
                 }
                 return;
-            }
         }
+
     }
 
     for (
@@ -166,7 +168,7 @@ pub fn apply_platformer_controls(
         let direction = transform_for_controls
             .transform_point(screen_space_direction.f32())
             .adjust_precision();
-
+        #[allow(clippy::match_same_arms)]
         let jump = match (config.ext.dimensionality, is_climbing) {
             (Dimensionality::Dim2, true) => keyboard.any_pressed([KeyCode::Space]),
             (Dimensionality::Dim2, false) => {
@@ -177,12 +179,12 @@ pub fn apply_platformer_controls(
         let dash = keyboard.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]);
 
         let has_mounted_camera = {
-            let mounted_camera_controller: &Option<&CameraControllerMounted> = &camera_controller.1;
+            let mounted_camera_controller: Option<&CameraControllerMounted> = camera_controller.1;
             mounted_camera_controller.is_some()
         };
         let turn_in_place =
             !has_mounted_camera && keyboard.any_pressed([KeyCode::AltLeft, KeyCode::AltRight]);
-
+        #[allow(clippy::match_same_arms)]
         let crouch_buttons = match (config.ext.dimensionality, is_climbing) {
             (Dimensionality::Dim2, true) => CROUCH_BUTTONS_3D.iter().copied(),
             (Dimensionality::Dim2, false) => CROUCH_BUTTONS_2D.iter().copied(),
@@ -332,7 +334,7 @@ pub fn apply_platformer_controls(
                         handler.dont_fall();
                     }
                 }
-            };
+            }
         } else {
             crouch = crouch_pressed;
         }
@@ -432,7 +434,7 @@ pub fn apply_platformer_controls(
                         desired_forward: action.desired_forward,
                         ..Default::default()
                     };
-
+                    #[allow(clippy::items_after_statements)]
                     const LOOK_ABOVE_OR_BELOW: Float = 5.0;
                     match action
                         .desired_climb_motion
@@ -496,6 +498,7 @@ pub fn apply_platformer_controls(
             if !blip.is_interactable() {
                 continue;
             }
+            #[allow(clippy::match_same_arms)]
             match blip.spatial_relation(0.5) {
                 TnuaBlipSpatialRelation::Invalid => {}
                 TnuaBlipSpatialRelation::Above => {}
@@ -540,7 +543,7 @@ pub fn apply_platformer_controls(
             // enforcer though, which makes sure the character does not stand up if below an
             // obstacle.
             controller.action(DemoControlScheme::Crouch(
-                Default::default(),
+                TnuaBuiltinCrouch,
                 slow_down_while_crouching,
             ));
         }
@@ -669,7 +672,7 @@ impl UiTunable for DemoControlSchemeConfig {
     }
 }
 
-#[derive(Component, Debug, PartialEq, Default, Serialize, Deserialize)]
+#[derive(Component, Debug, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum FallingThroughControlScheme {
     JumpThroughOnly,
     WithoutHelper,
@@ -682,16 +685,16 @@ impl UiTunable for FallingThroughControlScheme {
     #[cfg(feature = "egui")]
     fn tune(&mut self, ui: &mut egui::Ui) {
         egui::ComboBox::from_label("Falling Through Control Scheme")
-            .selected_text(format!("{:?}", self))
+            .selected_text(format!("{self:?}"))
             .show_ui(ui, |ui| {
                 for variant in [
-                    FallingThroughControlScheme::JumpThroughOnly,
-                    FallingThroughControlScheme::WithoutHelper,
-                    FallingThroughControlScheme::SingleFall,
-                    FallingThroughControlScheme::KeepFalling,
+                    Self::JumpThroughOnly,
+                    Self::WithoutHelper,
+                    Self::SingleFall,
+                    Self::KeepFalling,
                 ] {
                     if ui
-                        .selectable_label(*self == variant, format!("{:?}", variant))
+                        .selectable_label(*self == variant, format!("{variant:?}"))
                         .clicked()
                     {
                         *self = variant;
@@ -776,7 +779,7 @@ impl Plugin for JustPressedCachePlugin {
         );
     }
 }
-
+#[allow(clippy::needless_pass_by_value)]
 fn collect_just_pressed_cache(
     query: Query<&TnuaConfig<DemoControlScheme>>,
     config_assets: Res<Assets<DemoControlSchemeConfig>>,
@@ -797,7 +800,7 @@ fn collect_just_pressed_cache(
 
 fn clear_just_pressed_cache(mut just_pressed: ResMut<JustPressedCache>) {
     if just_pressed.was_read {
-        *just_pressed = default()
+        *just_pressed = default();
     }
 }
 

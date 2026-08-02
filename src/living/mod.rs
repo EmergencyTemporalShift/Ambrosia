@@ -40,6 +40,8 @@ impl Plugin for LivingPlugin {
 }
 
 impl Team {
+    #[must_use]
+    #[allow(clippy::use_self)]
     pub fn is_hostile_to(&self, other: &Team) -> bool {
         match (self, other) {
             // Environment/Hazards harm everyone except other hazards

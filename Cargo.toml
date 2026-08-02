@@ -61,3 +61,7 @@ web-sys = { version = "0.3", features = ["Window", "Location", "Url", "UrlSearch
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(feature, values("pie", "editor"))'] }
+
+[lints.clippy]
+pedantic = { level = "deny", priority = -1 }
+nursery = { level = "deny", priority = -1 }

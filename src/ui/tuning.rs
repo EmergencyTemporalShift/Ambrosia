@@ -32,7 +32,7 @@ fn slider_or_infinity(
         if resp.clicked() {
             if infinite {
                 ui.memory_mut(|memory| memory.data.insert_temp(resp.id, CachedValue(*value)));
-                *value = Float::INFINITY
+                *value = Float::INFINITY;
             } else if let Some(CachedValue(saved_value)) =
                 ui.memory_mut(|memory| memory.data.get_temp(resp.id))
             {

@@ -1,3 +1,4 @@
+#![allow(clippy::needless_pass_by_value)]
 use bevy::gltf::Gltf;
 use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
@@ -30,7 +31,7 @@ pub fn animation_patcher_system(
                 let root_node = graph.root;
                 let mut animations = HashMap::<String, AnimationNodeIndex>::new();
 
-                for (name, clip) in gltf.named_animations.iter() {
+                for (name, clip) in &gltf.named_animations {
                     let node_index = graph.add_clip(clip.clone(), 1.0, root_node);
                     animations.insert(name.to_string(), node_index);
                 }

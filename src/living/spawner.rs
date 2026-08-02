@@ -1,3 +1,4 @@
+#![allow(clippy::needless_pass_by_value)]
 use avian2d::prelude::*;
 use bevy::prelude::*;
 use super::components::CharacterSprite;

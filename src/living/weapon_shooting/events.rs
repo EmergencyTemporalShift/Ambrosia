@@ -1,4 +1,3 @@
-use std::mem::discriminant;
 use bevy::prelude::*;
 use glamour::Vector2;
 use crate::util::units::CartesianSpace;
@@ -14,13 +13,9 @@ pub enum WeaponIntent {
 }
 
 impl WeaponIntent {
-    /// Checks if two share the same enum variant head, ignoring inner data.
-    pub fn is_same_variant(&self, other: &Self) -> bool {
-        discriminant(self) == discriminant(other)
-    }
-    
     /// Extracts the weapon position and aim if the intent is an active hold.
-    pub fn spatial_data(&self) -> Option<(Vector2<CartesianSpace>, Vector2<CartesianSpace>)> {
+    #[must_use]
+    pub const fn spatial_data(&self) -> Option<(Vector2<CartesianSpace>, Vector2<CartesianSpace>)> {
         match *self {
             Self::BeginHold { weapon_pos, aim }
             | Self::ContinueHold { weapon_pos, aim } => Some((weapon_pos, aim)),

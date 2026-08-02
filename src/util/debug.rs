@@ -1,3 +1,4 @@
+#![allow(clippy::needless_pass_by_value)]
 use avian2d::parry::glamx::Vec2;
 use bevy::color::Color;
 use bevy::prelude::{Bundle, Commands, Component, Entity, Gizmos, Query, Res, Time, Transform};
@@ -10,6 +11,7 @@ pub struct DebugMarker {
 }
 
 impl DebugMarker {
+    #[must_use]
     pub fn circle(pos: Vec2, color: Color, radius: f32, duration: f32) -> impl Bundle {
         (
             DebugMarker { color, radius },

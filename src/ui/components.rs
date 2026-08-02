@@ -9,7 +9,8 @@ pub struct Hierarchy {
 }
 
 impl Hierarchy {
-    pub fn new(entities: Vec<Entity>) -> Self {
+    #[must_use]
+    pub const fn new(entities: Vec<Entity>) -> Self {
         Self { entities }
     }
 
@@ -23,12 +24,12 @@ impl Hierarchy {
         let mut new_selected = selected_entity;
         egui::ComboBox::from_label("Entity Hierarchy")
             .selected_text(match selected_entity {
-                Some(ent) => format!("Entity {:?}", ent),
+                Some(ent) => format!("Entity {ent:?}"),
                 None => "Select an entity".to_string(),
             })
             .show_ui(ui, |ui| {
                 for &ent in &self.entities {
-                    let label = format!("Entity {:?}", ent);
+                    let label = format!("Entity {ent:?}");
                     if ui
                         .selectable_label(selected_entity == Some(ent), &label)
                         .clicked()

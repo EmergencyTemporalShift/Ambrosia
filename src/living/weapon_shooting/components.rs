@@ -23,7 +23,7 @@ pub struct AmmoFluid {
     pub current_ammo: f32,
 }
 
-#[derive(Component, Clone, Copy, PartialEq, Debug, Reflect)]
+#[derive(Component, Clone, Copy, PartialEq, Eq, Debug, Reflect)]
 pub enum WeaponKind {
     Bow,
     Sword,
@@ -41,14 +41,17 @@ pub struct WeaponInventory {
 impl WeaponInventory {
 
     // Create a new inventory from a starting list
-    pub fn new(starting_weapons: Vec<Entity>) -> Self {
+    #[must_use]
+    pub const fn new(starting_weapons: Vec<Entity>) -> Self {
         Self {
             slots: starting_weapons,
             active: 0,
         }
     }
 
-    // A system can call this to safely add a weapon, proving it has the component
+    /// # Errors
+    /// A system can call this to safely add a weapon, proving it has the component
+    /// Errors if it does not have a weapon component.
     pub fn add_weapon(&mut self, entity: Entity, weapon_query: &Query<&Weapon>) -> Result<(), &'static str> {
         if weapon_query.contains(entity) {
             self.slots.push(entity);
@@ -58,15 +61,17 @@ impl WeaponInventory {
         }
     }
     
+    #[must_use]
     pub fn current(&self) -> Option<Entity> {
         self.slots.get(self.active).copied()
     }
 
+    #[must_use]
     pub fn slots(&self) -> &[Entity] {
         &self.slots
     }
 
-    pub fn cycle(&mut self, forward: bool) {
+    pub const fn cycle(&mut self, forward: bool) {
         if self.slots.is_empty() {
             return;
         }

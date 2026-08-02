@@ -9,7 +9,7 @@ use super::helper::LevelSetupHelper2d;
 
 pub fn setup_level(mut helper: LevelSetupHelper2d) {
     helper.spawn(PositionPlayer::from(Vec3::new(0.0, 2.0, 0.0)));
-
+    #[allow(clippy::cast_precision_loss)]
     for i in 0..4 {
         helper.spawn_rectangle(
             format!("Floor {i}"),
@@ -18,13 +18,13 @@ pub fn setup_level(mut helper: LevelSetupHelper2d) {
             Vector2::new(8.0, 0.1),
         );
     }
-
+    #[allow(clippy::cast_precision_loss)]
     for i in 0..4 {
         helper
             .spawn_rectangle(
                 format!("Ghost {i}"),
                 css::ORANGE,
-                Transform::from_xyz(6.0, 0.2 + i as f32 * 0.4, 0.0),
+                Transform::from_xyz(6.0, (i as f32).mul_add(0.4, 0.2), 0.0),
                 Vector2::new(8.0, 0.1),
             )
             .insert((

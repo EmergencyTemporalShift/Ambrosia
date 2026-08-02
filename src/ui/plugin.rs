@@ -28,7 +28,7 @@ for DemoUi<S, C>
 {
     fn default() -> Self {
         Self {
-            _phantom: Default::default(),
+            _phantom: PhantomData,
         }
     }
 }

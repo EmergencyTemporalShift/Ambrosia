@@ -1,3 +1,5 @@
+#![allow(clippy::needless_pass_by_value)]
+#![allow(clippy::trivially_copy_pass_by_ref)]
 use bevy::{app::AppExit, prelude::*};
 use leafwing_input_manager::prelude::*;
 use crate::living::player::IsPlayer;
@@ -26,7 +28,7 @@ impl Default for OtherControls {
 
 impl OtherControls {
     #[cfg(feature = "egui")]
-    pub fn is_egui_visible(&self) -> bool {
+    pub const fn is_egui_visible(&self) -> bool {
         self.egui_visible
     }
     #[cfg(not(feature = "egui"))]
@@ -35,15 +37,15 @@ impl OtherControls {
     }
 
     #[allow(dead_code)]
-    pub fn show_egui(&mut self) {
+    pub const fn show_egui(&mut self) {
         self.egui_visible = true;
     }
     #[allow(dead_code)]
-    pub fn hide_egui(&mut self) {
+    pub const fn hide_egui(&mut self) {
         self.egui_visible = false;
     }
 
-    pub fn toggle_egui(&mut self) {
+    pub const fn toggle_egui(&mut self) {
         self.egui_visible = !self.egui_visible;
     }
 
@@ -132,13 +134,13 @@ fn dump_entity_tree(world: &World, entity: Entity, depth: usize) {
 
     let entity_label = entity_ref
         .get::<Name>()
-        .map(|n| n.as_str())
+        .map(Name::as_str)
         .unwrap_or("Unnamed Entity");
 
     let mut comp_names: Vec<String> = entity_ref
         .archetype()
         .components()
-        .into_iter()
+        .iter()
         .filter_map(|id| world.components().get_name(*id))
         .map(|debug_name| {
             let full_path = &*debug_name;

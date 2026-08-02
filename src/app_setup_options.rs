@@ -18,6 +18,7 @@ pub struct AppSetupConfiguration {
 
 impl AppSetupConfiguration {
     #[cfg(not(target_arch = "wasm32"))]
+    #[must_use]
     pub fn from_environment() -> Self {
         Self::parse()
     }
@@ -64,7 +65,7 @@ impl AppSetupConfiguration {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, ValueEnum)]
+#[derive(Debug, Clone, PartialEq, Eq, ValueEnum)]
 pub enum ScheduleToUse {
     Update,
     FixedUpdate,

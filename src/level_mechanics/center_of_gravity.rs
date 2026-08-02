@@ -29,7 +29,7 @@ fn add_or_remove_components(
     } else {
         for entity in players_without.iter() {
             let mut cmd = commands.entity(entity);
-            cmd.insert(TnuaGravity(Default::default()));
+            cmd.insert(TnuaGravity(Vec3::default()));
         }
     }
 }
@@ -42,7 +42,7 @@ fn set_gravity(
         let character_position = character_transform.translation();
         let Some(center_of_gravity) = centers
             .iter()
-            .map(|center_transform| center_transform.translation())
+            .map(GlobalTransform::translation)
             .min_by_key(|center_position| {
                 OrderedFloat(center_position.distance_squared(character_position))
             })

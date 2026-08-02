@@ -27,6 +27,7 @@ pub struct MovingPlatform {
 }
 
 impl MovingPlatform {
+    #[must_use]
     pub fn new(speed: Float, locations: &[Vector3]) -> Self {
         Self {
             current_leg: 0,
@@ -39,7 +40,7 @@ impl MovingPlatform {
         mut updater: impl 'static + Send + Sync + FnMut(&mut V, Vector3),
     ) -> ScheduleConfigs<ScheduleSystem> {
         (move |time: Res<Time>,
-               mut query: Query<(&mut MovingPlatform, &GlobalTransform, &mut V)>| {
+               mut query: Query<(&mut Self, &GlobalTransform, &mut V)>| {
             for (mut moving_platform, transform, mut velocity) in query.iter_mut() {
                 let current = transform.translation().adjust_precision();
                 let target = moving_platform.locations[moving_platform.current_leg];

@@ -16,7 +16,8 @@ pub enum InfoBit {
 }
 
 impl InfoSource {
-    pub fn is_active(&self) -> bool {
+    #[must_use]
+    pub const fn is_active(&self) -> bool {
         self.is_active
     }
 

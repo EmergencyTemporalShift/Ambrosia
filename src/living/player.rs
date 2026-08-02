@@ -1,3 +1,4 @@
+#![allow(clippy::needless_pass_by_value)]
 use avian2d::prelude::*;
 use bevy::prelude::*;
 use bevy_tnua::prelude::*;
@@ -103,6 +104,7 @@ pub fn setup_player(
             cmd.insert(TnuaToggle::default());
 
             cmd.insert({
+                #[warn(clippy::let_and_return)]
                 let command_altering_selectors = CommandAlteringSelectors::default()
                     .with_combo(
                         "Sensor Shape",

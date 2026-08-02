@@ -7,7 +7,7 @@ use bevy_tnua::builtins::{
     TnuaBuiltinWallSlide, TnuaBuiltinWallSlideConfig,
 };
 use bevy_tnua::control_helpers::{TnuaActionSlots, TnuaAirActionDefinition, TnuaHasTargetEntity};
-use bevy_tnua::math::*;
+use bevy_tnua::math::{Vector3, Float, float_consts};
 use bevy_tnua::{TnuaConfigModifier, TnuaScheme};
 use serde::{Deserialize, Serialize};
 
@@ -69,13 +69,8 @@ impl TnuaConfigModifier<TnuaBuiltinWalkConfig> for SlowDownWhileCrouching {
 impl TnuaAirActionDefinition for DemoControlScheme {
     fn is_air_action(action: Self::ActionDiscriminant) -> bool {
         match action {
-            DemoControlSchemeActionDiscriminant::Jump => true,
             DemoControlSchemeActionDiscriminant::Crouch => false,
-            DemoControlSchemeActionDiscriminant::Dash => true,
-            DemoControlSchemeActionDiscriminant::Knockback => true,
-            DemoControlSchemeActionDiscriminant::WallSlide => true,
-            DemoControlSchemeActionDiscriminant::WallJump => true,
-            DemoControlSchemeActionDiscriminant::Climb => true,
+            DemoControlSchemeActionDiscriminant::Jump | DemoControlSchemeActionDiscriminant::Dash | DemoControlSchemeActionDiscriminant::Knockback | DemoControlSchemeActionDiscriminant::WallSlide | DemoControlSchemeActionDiscriminant::WallJump | DemoControlSchemeActionDiscriminant::Climb => true,
         }
     }
 }
@@ -91,6 +86,7 @@ pub struct DemoControlSchemeAirActions {
 
 impl TnuaHasTargetEntity for DemoControlScheme {
     fn target_entity(action_state: &Self::ActionState) -> Option<Entity> {
+        #[allow(clippy::match_same_arms)]
         match action_state {
             DemoControlSchemeActionState::Jump(_) => None,
             DemoControlSchemeActionState::Crouch(_, _) => None,
@@ -128,6 +124,7 @@ impl Default for DemoControlSchemeConfig {
                 vertical_distance: 0.0,
                 ..Default::default()
             },
+            #[allow(clippy::default_trait_access)]
             knockback: Default::default(),
             wall_slide: TnuaBuiltinWallSlideConfig {
                 maintain_distance: Some(0.7),

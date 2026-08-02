@@ -1,3 +1,4 @@
+#![allow(clippy::needless_pass_by_value)]
 use std::cmp::PartialEq;
 use bevy::ecs::query::QuerySingleError;
 use bevy::prelude::*;
@@ -53,7 +54,7 @@ impl Plugin for PlayerInputPlugin {
         );
     }
 }
-
+#[allow(clippy::needless_pass_by_value)]
 pub fn player_fire_input(
     mut commands: Commands,
     window: Single<&Window, With<PrimaryWindow>>,
@@ -66,7 +67,7 @@ pub fn player_fire_input(
     #[cfg(feature = "egui")]
     let egui_wants_pointer = egui_contexts
         .ctx_mut()
-        .map_or(false, |ctx| ctx.egui_wants_pointer_input());
+        .is_ok_and(|ctx| ctx.egui_wants_pointer_input());
     #[cfg(not(feature = "egui"))]
     let egui_wants_pointer = false;
 
@@ -153,8 +154,7 @@ pub fn player_weapon_face_mouse(
     let aim_vector = world_cursor.to_space::<CartesianSpace>() - player_pos;
 
     let sprite_offset = visual_config
-        .map(|config| config.sprite_angle_offset)
-        .unwrap_or(0.0);
+        .map_or(0.0, |config| config.sprite_angle_offset);
 
     let aim_angle = aim_vector.to_angle() + sprite_offset;
 
@@ -171,7 +171,7 @@ pub fn player_cycle_weapon(
     #[cfg(feature = "egui")]
     if egui_contexts
         .ctx_mut()
-        .map_or(false, |ctx| ctx.egui_wants_pointer_input())
+        .is_ok_and(|ctx| ctx.egui_wants_pointer_input())
     {
         return;
     }
